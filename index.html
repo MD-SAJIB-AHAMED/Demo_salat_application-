@@ -6,37 +6,63 @@
   <title>Prayer Times</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      background-color: #f4f4f4;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       margin: 0;
-      padding: 20px;
+      padding: 0;
+      background: linear-gradient(135deg, #1e3c72, #2a5298);
+      color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .container {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      backdrop-filter: blur(10px);
+      text-align: center;
+      max-width: 400px;
+      width: 100%;
     }
     h1 {
-      color: #333;
+      font-size: 28px;
+      margin-bottom: 20px;
+      color: #fff;
     }
     #search-bar {
-      margin: 20px 0;
-      padding: 10px;
-      width: 300px;
-      border: 1px solid #ccc;
-      border-radius: 5px;
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      font-size: 16px;
+      background: rgba(255, 255, 255, 0.2);
+      color: #fff;
+      outline: none;
+    }
+    #search-bar::placeholder {
+      color: rgba(255, 255, 255, 0.7);
     }
     #prayer-times {
       margin-top: 20px;
-      background: #fff;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-      display: inline-block;
     }
     #prayer-times p {
       font-size: 18px;
-      margin: 10px 0;
+      margin: 15px 0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    #prayer-times span {
+      font-weight: bold;
+      color: #ffdd57;
     }
     #location {
       font-size: 16px;
-      color: #555;
+      color: rgba(255, 255, 255, 0.8);
+      margin-bottom: 20px;
     }
     .notification {
       position: fixed;
@@ -45,27 +71,51 @@
       background: #28a745;
       color: white;
       padding: 15px;
-      border-radius: 5px;
+      border-radius: 8px;
       display: none;
+      animation: slideIn 0.5s ease-out;
+    }
+    @keyframes slideIn {
+      from {
+        transform: translateX(100%);
+      }
+      to {
+        transform: translateX(0);
+      }
     }
   </style>
 </head>
 <body>
-  <h1>Prayer Times</h1>
-  <input type="text" id="search-bar" placeholder="Enter city name (e.g., Mecca)">
-  <div id="prayer-times">
-    <p id="location">Location: Fetching...</p>
-    <p>Fajr: <span id="fajr"></span></p>
-    <p>Dhuhr: <span id="dhuhr"></span></p>
-    <p>Asr: <span id="asr"></span></p>
-    <p>Maghrib: <span id="maghrib"></span></p>
-    <p>Isha: <span id="isha"></span></p>
+  <div class="container">
+    <h1>Prayer Times</h1>
+    <input type="text" id="search-bar" placeholder="Enter city name (e.g., Mecca)">
+    <div id="location">Location: Fetching...</div>
+    <div id="prayer-times">
+      <p>Fajr: <span id="fajr"></span></p>
+      <p>Dhuhr: <span id="dhuhr"></span></p>
+      <p>Asr: <span id="asr"></span></p>
+      <p>Maghrib: <span id="maghrib"></span></p>
+      <p>Isha: <span id="isha"></span></p>
+    </div>
   </div>
   <div id="notification" class="notification">Prayer Time Started!</div>
 
   <script>
     // Audio for Azan
     const azanAudio = new Audio('https://www.islamcan.com/audio/adhan/azan1.mp3'); // Replace with your Azan audio URL
+
+    // Function to convert 24-hour time to 12-hour format
+    function formatTime(time) {
+      const [hours, minutes] = time.split(':');
+      let period = 'AM';
+      let hour = parseInt(hours);
+      if (hour >= 12) {
+        period = 'PM';
+        if (hour > 12) hour -= 12;
+      }
+      if (hour === 0) hour = 12; // Handle midnight (00:00)
+      return `${hour}:${minutes} ${period}`;
+    }
 
     // Function to fetch prayer times
     async function fetchPrayerTimes(lat, lon, city = '') {
@@ -76,12 +126,12 @@
         const timings = data.data.timings;
         const location = city || data.data.meta.timezone;
 
-        // Display prayer times
-        document.getElementById('fajr').textContent = timings.Fajr;
-        document.getElementById('dhuhr').textContent = timings.Dhuhr;
-        document.getElementById('asr').textContent = timings.Asr;
-        document.getElementById('maghrib').textContent = timings.Maghrib;
-        document.getElementById('isha').textContent = timings.Isha;
+        // Display prayer times in 12-hour format
+        document.getElementById('fajr').textContent = formatTime(timings.Fajr);
+        document.getElementById('dhuhr').textContent = formatTime(timings.Dhuhr);
+        document.getElementById('asr').textContent = formatTime(timings.Asr);
+        document.getElementById('maghrib').textContent = formatTime(timings.Maghrib);
+        document.getElementById('isha').textContent = formatTime(timings.Isha);
         document.getElementById('location').textContent = `Location: ${location}`;
 
         // Schedule notifications
