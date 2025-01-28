@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prayer Times</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      color: #333;
+    }
+    #search-bar {
+      margin: 20px 0;
+      padding: 10px;
+      width: 300px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    #prayer-times {
+      margin-top: 20px;
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      display: inline-block;
+    }
+    #prayer-times p {
+      font-size: 18px;
+      margin: 10px 0;
+    }
+    #location {
+      font-size: 16px;
+      color: #555;
+    }
+    .notification {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #28a745;
+      color: white;
+      padding: 15px;
+      border-radius: 5px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <h1>Prayer Times</h1>
+  <input type="text" id="search-bar" placeholder="Enter city name (e.g., Mecca)">
+  <div id="prayer-times">
+    <p id="location">Location: Fetching...</p>
+    <p>Fajr: <span id="fajr"></span></p>
+    <p>Dhuhr: <span id="dhuhr"></span></p>
+    <p>Asr: <span id="asr"></span></p>
+    <p>Maghrib: <span id="maghrib"></span></p>
+    <p>Isha: <span id="isha"></span></p>
+  </div>
+  <div id="notification" class="notification">Prayer Time Started!</div>
+
+  <script>
+    // Audio for Azan
+    const azanAudio = new Audio('https://www.islamcan.com/audio/adhan/azan1.mp3'); // Replace with your Azan audio URL
+
+    // Function to fetch prayer times
+    async function fetchPrayerTimes(lat, lon, city = '') {
+      const apiUrl = `https://api.aladhan.com/v1/timings?latitude=${lat}&longitude=${lon}&method=2`;
+      try {
+        const response = await fetch(apiUrl);
+        const data = await response.json();
+        const timings = data.data.timings;
+        const location = city || data.data.meta.timezone;
+
+        // Display prayer times
+        document.getElementById('fajr').textContent = timings.Fajr;
+        document.getElementById('dhuhr').textContent = timings.Dhuhr;
+        document.getElementById('asr').textContent = timings.Asr;
+        document.getElementById('maghrib').textContent = timings.Maghrib;
+        document.getElementById('isha').textContent = timings.Isha;
+        document.getElementById('location').textContent = `Location: ${location}`;
+
+        // Schedule notifications
+        scheduleNotifications(timings);
+      } catch (error) {
+        console.error('Error fetching prayer times:', error);
+      }
+    }
+
+    // Function to schedule notifications
+    function scheduleNotifications(timings) {
+      const now = new Date();
+      const prayerTimes = [
+        { name: 'Fajr', time: timings.Fajr },
+        { name: 'Dhuhr', time: timings.Dhuhr },
+        { name: 'Asr', time: timings.Asr },
+        { name: 'Maghrib', time: timings.Maghrib },
+        { name: 'Isha', time: timings.Isha },
+      ];
+
+      prayerTimes.forEach(prayer => {
+        const [hours, minutes] = prayer.time.split(':');
+        const prayerTime = new Date(now);
+        prayerTime.setHours(hours, minutes, 0, 0);
+
+        if (prayerTime > now) {
+          const delay = prayerTime - now;
+          setTimeout(() => {
+            showNotification(prayer.name);
+            playAzan();
+          }, delay);
+        }
+      });
+    }
+
+    // Function to show notification
+    function showNotification(prayerName) {
+      const notification = document.getElementById('notification');
+      notification.textContent = `${prayerName} Prayer Time Started!`;
+      notification.style.display = 'block';
+      setTimeout(() => {
+        notification.style.display = 'none';
+      }, 5000);
+    }
+
+    // Function to play Azan
+    function playAzan() {
+      azanAudio.play();
+    }
+
+    // Get user's current location
+    function getCurrentLocation() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+            fetchPrayerTimes(lat, lon);
+          },
+          (error) => {
+            console.error('Error getting location:', error);
+            fetchPrayerTimes(21.4225, 39.8262, 'Mecca'); // Default to Mecca if location access is denied
+          }
+        );
+      } else {
+        console.error('Geolocation is not supported by this browser.');
+        fetchPrayerTimes(21.4225, 39.8262, 'Mecca'); // Default to Mecca
+      }
+    }
+
+    // Search bar functionality
+    document.getElementById('search-bar').addEventListener('keypress', async (e) => {
+      if (e.key === 'Enter') {
+        const city = e.target.value;
+        const geocodeUrl = `https://geocode.xyz/${city}?json=1`;
+        try {
+          const response = await fetch(geocodeUrl);
+          const data = await response.json();
+          const lat = data.latt;
+          const lon = data.longt;
+          fetchPrayerTimes(lat, lon, city);
+        } catch (error) {
+          console.error('Error fetching location:', error);
+        }
+      }
+    });
+
+    // Initialize
+    getCurrentLocation();
+  </script>
+</body>
+</html>
